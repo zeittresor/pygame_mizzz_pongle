@@ -21,7 +21,7 @@ Graphics are created using Stable Diffusion Forge WebUI as long with the layer d
 extension.
 
 Songs / Music was written by me already in in the years 1990-1993 using protracker on the
-Amiga Computer (https://aminet.net/search?query=hardraver).
+Amiga Computer (later released to AmiNet https://aminet.net/search?query=hardraver).
 
 Have fun :-)
 
