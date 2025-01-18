@@ -1,0 +1,13 @@
+github.com/zeittresor
+
+Possible Files to use:
+- background.png
+- bumper.png
+- hole.png
+- corner.png
+- ball.png
+- bumper.wav
+- panel.wav
+- panel_left.png
+- panel_right.png
+- [any] .mp3
