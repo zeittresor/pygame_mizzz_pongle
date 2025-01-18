@@ -20,7 +20,7 @@ The Game is just written using notepad++ as long with some tips by AI (o1-model)
 Graphics are created using Stable Diffusion Forge WebUI as long with the layer diffusion
 extension.
 
-Songs / Music was written by me already in in the years 1996-1997 using protracker on the
+Songs / Music was written by me already in in the years 1989-1992 using protracker on the
 Amiga Computer (https://aminet.net/search?query=hardraver).
 
 Have fun :-)
