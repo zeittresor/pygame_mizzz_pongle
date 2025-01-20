@@ -36,44 +36,27 @@ History
 
   Possible files and what they are used for:
   
-- background.png: The background image used for the game.
-- 
-- bumper.png: The image of a bumper.
-- 
-- hole.png: The image of a hole at the bottom.
-- 
-- corner.png: A decorative image to be placed between the holes.
-- 
-- ball.png: The ball image.
-- 
-- bumper.wav: Sound effect for bumpers.
-- 
-- border.wav: Sound effect when ball hits the border.
-- 
-- panel.wav: Sound effect for the flippers.
-- 
-- button.wav: Sound effect when clicking on the buttons.
-- 
-- panel_left.png: Custom image for the left flipper.
-- 
-- panel_right.png: Custom image for the right flipper.
-- 
-- orgon.png: Custom image for the Orgon Accumulator button.
-- 
-- repulsine.png: Custom image for the Repulsine button.
-- 
-- Any .mp3 file: Will be played as background music.
+  - background.png: The background image used for the game.
+  - bumper.png: The image of a bumper.
+  - hole.png: The image of a hole at the bottom.
+  - corner.png: A decorative image to be placed between the holes.
+  - ball.png: The ball image.
+  - bumper.wav: Sound effect for bumpers.
+  - border.wav: Sound effect when ball hits the border.
+  - panel.wav: Sound effect for the flippers.
+  - button.wav: Sound effect when clicking on the buttons.
+  - panel_left.png: Custom image for the left flipper.
+  - panel_right.png: Custom image for the right flipper.
+  - orgon.png: Custom image for the Orgon Accumulator button.
+  - repulsine.png: Custom image for the Repulsine button.
+  - Any .mp3 file: Will be played as background music.
 
   
-
 Command line parameters:
 
 -debuglog : prints debug messages.
-
 -nospoon : disables the additional buttons (Orgon Accumulator / Repulsine).
-
 -funds : raises the number of shots to 999.
-
 -fullscreen or other pygame flags (optional, if you modify the code accordingly).
 
 
