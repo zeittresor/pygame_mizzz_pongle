@@ -34,5 +34,5 @@ History
 - Added better readme.txt generation with descriptions inside the data folder for "possible available" files
 - Added Commandline Options like -nospoon (no extra buttons) and -funds (max. balls 999)
 
-19.01.2025
+18.01.2025
 - First release Version as source and binary for Windows
