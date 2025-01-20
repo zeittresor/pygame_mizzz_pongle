@@ -29,8 +29,8 @@ Source: https://github.com/zeittresor/pygame_mizzz_pongle
 History
 
 20.01.2025
-- Added Button "Orgon Akkumulator" to change the Wind direction / speed randomly every 30 seconds
-- Added Button "Repulsine" to change the power up / ball speed every 20 seconds if last wall bumping contact was upside or downside (not left/right side)
+- Added Button "Orgon Akkumulator" to let you change the Wind direction / speed randomly every 30 seconds
+- Added Button "Repulsine" to let you change the power up / ball speed every 20 seconds if last wall bumping contact was upside or downside (not left or right side)
 - Added better readme.txt generation with descriptions inside the data folder for "possible available" files
 - Added Commandline Options like -nospoon (no extra buttons) and -funds (max. balls 999)
 
