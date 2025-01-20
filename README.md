@@ -30,7 +30,7 @@ History
 
 20.01.2025
 - Added Option to change the Wind direction / speed randomly every 30 seconds "Orgon Akkumulator"
-- Added Option to change the power up / ball speed "Repulsine"
+- Added Option to change the power up / ball speed every 20 seconds "Repulsine"
 - Added better readme.txt generation with descriptions inside the data folder for "possible available" files
 - Added Commandline Options like -nospoon (no extra buttons) and -funds (max. balls 999)
 
