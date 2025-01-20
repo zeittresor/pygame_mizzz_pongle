@@ -1,8 +1,7 @@
 # pygame_mizzz_pongle
 Free Pongle/Pegl/Pong/Plop style game written in python using pygame..
 
-![mizzz_pongle](https://github.com/user-attachments/assets/efb796b5-0bf7-4ebc-850e-cb0a28b8a965)
-
+![mizzz_pongle_v1_1](https://github.com/user-attachments/assets/b5cf0f20-cb9f-4b59-a5aa-76c516c843c0)
 
 This is my first game written in python using the pygame repository..
 
@@ -26,3 +25,14 @@ Amiga Computer (later released to AmiNet https://aminet.net/search?query=hardrav
 Have fun :-)
 
 Source: https://github.com/zeittresor/pygame_mizzz_pongle
+
+History
+
+20.01.2025
+- Added Option to change the Wind direction / speed randomly every 30 seconds "Orgon Akkumulator"
+- Added Option to change the power up / ball speed "Repulsine"
+- Added better readme.txt generation with descriptions inside the data folder for "possible available" files
+- Added Commandline Options like -nospoon (no extra buttons) and -funds (max. balls 999)
+
+19.01.2025
+- First release Version as source and binary for Windows
