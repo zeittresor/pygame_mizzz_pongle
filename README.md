@@ -1,5 +1,5 @@
 # pygame_mizzz_pongle
-Free Pongle/Pegl/Pong/Plop style game written in python using pygame..
+Free Pongle/Pegl/Pong/Plop/Flipper style game written in python using pygame..
 
 ![mizzz_pongle_v1_1](https://github.com/user-attachments/assets/b5cf0f20-cb9f-4b59-a5aa-76c516c843c0)
 
