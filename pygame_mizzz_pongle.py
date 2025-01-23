@@ -21,7 +21,7 @@ if "-funds" in sys.argv:
 
 def debug_print(msg):
     if DEBUG_LOG:
-        print("[DEBUG]", msg)
+        print(msg)
 
 try:
     from pydub import AudioSegment
@@ -40,15 +40,25 @@ MAX_SHOTS = 12
 HOLES_COUNT = 5
 if FUNDS_MODE:
     MAX_SHOTS = 999
+
 BG_COLOR_CYCLE = 0
 COLOR_CYCLE_INTERVAL = 45
 COLOR_CYCLE_FADE_DURATION = 10
 HUE_SHIFT_STEP = 60
 COLOR_SHIFT_FPS = 2
+
 FONT_NAME = None
 LOG_FILENAME = "score_log.txt"
 MUSIC_FILES = []
 MUSIC_INDEX = 0
+
+IS_PAUSED = False
+SHOW_OPTIONS = False
+BRIGHTNESS = 0.6
+MUSIC_VOLUME = 1.0
+
+BG_IMAGES = []
+BG_INDEX = 0
 
 def ensure_data_folder():
     data_dir = os.path.join(os.getcwd(), "data")
@@ -57,30 +67,26 @@ def ensure_data_folder():
     readme_path = os.path.join(data_dir, "readme.txt")
     with open(readme_path, "w", encoding="utf-8") as f:
         f.write("Possible files and what they are used for:\n")
-        f.write("- background.png: The background image used for the game.\n")
-        f.write("- bumper.png: The image of a bumper.\n")
-        f.write("- hole.png: The image of a hole at the bottom.\n")
-        f.write("- corner.png: A decorative image to be placed between the holes.\n")
-        f.write("- ball.png: The ball image.\n")
-        f.write("- bumper.wav: Sound effect for bumpers.\n")
-        f.write("- border.wav: Sound effect when ball hits the border.\n")
-        f.write("- panel.wav: Sound effect for the flippers.\n")
-        f.write("- button.wav: Sound effect when clicking on the buttons.\n")
-        f.write("- panel_left.png: Custom image for the left flipper.\n")
-        f.write("- panel_right.png: Custom image for the right flipper.\n")
-        f.write("- orgon.png: Custom image for the Orgon Accumulator button.\n")
-        f.write("- repulsine.png: Custom image for the Repulsine button.\n")
-        f.write("- Any .mp3 file: Will be played as background music.\n\n")
+        f.write("- background.png\n")
+        f.write("- backgroundSomething.png\n")
+        f.write("- bumper.png\n")
+        f.write("- hole.png\n")
+        f.write("- corner.png\n")
+        f.write("- ball.png\n")
+        f.write("- bumper.wav\n")
+        f.write("- border.wav\n")
+        f.write("- panel.wav\n")
+        f.write("- button.wav\n")
+        f.write("- panel_left.png / panel_right.png\n")
+        f.write("- orgon.png\n")
+        f.write("- repulsine.png\n")
+        f.write("- Any .mp3 file\n")
         f.write("Game principle:\n")
-        f.write("This is a pinball-like game. Use the mouse to fire the ball by clicking and aiming. The ball will\n")
-        f.write("bounce around, and you can control left/right flippers by pressing the left/right mouse buttons\n")
-        f.write("or the arrow keys. There are bumpers that give you points when hit, and holes at the bottom which\n")
-        f.write("take points if the ball falls there. You have a limited number of shots (unless you use -funds).\n\n")
+        f.write("Pinball-like game.\n")
         f.write("Command line parameters:\n")
-        f.write("-debuglog : prints debug messages.\n")
-        f.write("-nospoon : disables the additional buttons (Orgon Accumulator / Repulsine).\n")
-        f.write("-funds : raises the number of shots to 999.\n")
-        f.write("-fullscreen or other pygame flags (optional, if you modify the code accordingly).\n")
+        f.write("-debuglog\n")
+        f.write("-nospoon\n")
+        f.write("-funds\n")
 
 def load_music_files_from_data():
     data_dir = os.path.join(os.getcwd(), "data")
@@ -92,7 +98,23 @@ def load_music_files_from_data():
         if file.lower().endswith(".mp3"):
             MUSIC_FILES.append(os.path.join(data_dir, file))
     MUSIC_FILES.sort()
-    debug_print(f"Music files found: {MUSIC_FILES}")
+    debug_print("Music files found: " + str(MUSIC_FILES))
+
+def load_all_background_images():
+    data_dir = os.path.join(os.getcwd(), "data")
+    found_files = []
+    for file in os.listdir(data_dir):
+        if file.lower().startswith("background") and file.lower().endswith(".png"):
+            found_files.append(file)
+    found_files.sort()
+    for fn in found_files:
+        path = os.path.join(data_dir, fn)
+        try:
+            img = pygame.image.load(path).convert_alpha()
+            BG_IMAGES.append(img)
+            debug_print("Loaded multi-background: " + fn)
+        except Exception as e:
+            debug_print("Error loading multi-background " + fn + ": " + str(e))
 
 def play_next_song():
     global MUSIC_INDEX
@@ -103,11 +125,12 @@ def play_next_song():
         pygame.mixer.music.stop()
         pygame.mixer.music.unload()
         pygame.mixer.music.load(MUSIC_FILES[MUSIC_INDEX])
+        pygame.mixer.music.set_volume(MUSIC_VOLUME)
         pygame.mixer.music.play()
-        debug_print(f"Playing music: {MUSIC_FILES[MUSIC_INDEX]}")
+        debug_print("Playing music: " + MUSIC_FILES[MUSIC_INDEX])
         MUSIC_INDEX = (MUSIC_INDEX + 1) % len(MUSIC_FILES)
     except Exception as e:
-        debug_print(f"Error loading/playing MP3: {e}")
+        debug_print("Error loading/playing MP3: " + str(e))
 
 def check_and_play_music():
     if not MUSIC_FILES:
@@ -117,8 +140,8 @@ def check_and_play_music():
 
 def log_score(score):
     with open(LOG_FILENAME, "a", encoding="utf-8") as f:
-        f.write(f"Score: {score} - Time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
-    debug_print(f"Score {score} written to log.")
+        f.write("Score: " + str(score) + " - Time: " + time.strftime("%Y-%m-%d %H:%M:%S") + "\n")
+    debug_print("Score " + str(score) + " written to log.")
 
 def get_alpha_mask_circle(radius, color=(255, 0, 0)):
     surf = pygame.Surface((radius*2, radius*2), pygame.SRCALPHA)
@@ -144,17 +167,18 @@ def create_sine_wave(frequency, length_ms=200, volume=0.3):
 
 def pitch_shift_wav(wav_path, semitone):
     if not PITCH_SHIFT_AVAILABLE:
-        debug_print("Pitch shift not available (pydub or ffmpeg missing). Returning None.")
+        debug_print("Pitch shift not available (pydub or ffmpeg missing).")
         return None
     try:
+        from pydub import AudioSegment
         original = AudioSegment.from_file(wav_path)
         new_frame_rate = int(original.frame_rate * (2.0 ** (semitone / 12.0)))
         shifted = original._spawn(original.raw_data, overrides={"frame_rate": new_frame_rate})
         shifted = shifted.set_frame_rate(44100)
-        debug_print(f"Successfully pitch-shifted {wav_path} by {semitone} semitones.")
+        debug_print("Successfully pitch-shifted " + wav_path + " by " + str(semitone))
         return shifted.raw_data
     except Exception as e:
-        debug_print(f"Pitch-shift failed: {e}")
+        debug_print("Pitch-shift failed: " + str(e))
         return None
 
 def rgb_to_hsv(r, g, b):
@@ -222,14 +246,14 @@ def shift_surface_hue(original_surf, hue_value):
 def safe_shift_surface_hue(surf, hue_value):
     try:
         if surf is None:
-            debug_print("safe_shift_surface_hue called with None-surface. Returning None.")
+            debug_print("safe_shift_surface_hue called with None-surface.")
             return None
         w, h = surf.get_size()
-        debug_print(f"Applying hue shift to background {w}x{h} with hue={hue_value}...")
+        debug_print("Applying hue shift to background " + str(w) + "x" + str(h) + " with hue=" + str(hue_value))
         return shift_surface_hue(surf, hue_value)
     except Exception as e:
-        debug_print("Error in shift_surface_hue:\n" + traceback.format_exc())
-        debug_print("Falling back to original surface (no hue shift).")
+        debug_print("Error in shift_surface_hue: " + traceback.format_exc())
+        debug_print("Falling back to original surface.")
         return surf
 
 class Wind:
@@ -268,26 +292,18 @@ def play_bounce_sound():
     if bounce_sounds:
         bounce_sounds[bounce_index].play()
         bounce_index = min(bounce_index + 1, len(bounce_sounds)-1)
-    else:
-        debug_print("bounce_sounds is empty. No bounce sound played.")
 
 def play_border_sound():
     if border_sound:
         border_sound.play()
-    else:
-        debug_print("No border_sound available. Skipping play_border_sound().")
 
 def play_panel_sound():
     if panel_sound:
         panel_sound.play()
-    else:
-        debug_print("No panel_sound available. Skipping play_panel_sound().")
 
 def play_button_sound():
     if button_sound:
         button_sound.play()
-    else:
-        debug_print("No button_sound available. Skipping play_button_sound().")
 
 class Flipper(pygame.sprite.Sprite):
     def __init__(self, side, pivot_pos, length=60):
@@ -300,8 +316,11 @@ class Flipper(pygame.sprite.Sprite):
         self.rotating = False
         self.time_since_flip = 0.0
         self.flip_duration = 0.15
-        self._load_or_build_image()
+        self.original_image = None
         self.mask = None
+        self.image = None
+        self.rect = None
+        self._load_or_build_image()
         self._update_rotation()
     def _load_or_build_image(self):
         data_dir = os.path.join(os.getcwd(), "data")
@@ -430,7 +449,7 @@ def place_bumpers(bumper_count, bumper_surf, bumper_mask):
     attempts = 0
     max_attempts = 500
     radius_estimate = bumper_surf.get_width() // 2
-    debug_print(f"Placing {bumper_count} bumpers with radius estimate {radius_estimate}.")
+    debug_print("Placing " + str(bumper_count) + " bumpers with radius estimate " + str(radius_estimate) + ".")
     while len(bumpers) < bumper_count and attempts < max_attempts:
         x = random.randint(150, SCREEN_WIDTH - 150)
         y = random.randint(100, SCREEN_HEIGHT // 2)
@@ -447,10 +466,23 @@ def place_bumpers(bumper_count, bumper_surf, bumper_mask):
             bumpers.add(candidate)
         attempts += 1
     if len(bumpers) < bumper_count:
-        debug_print(f"Could only place {len(bumpers)} bumpers (wanted {bumper_count}).")
+        debug_print("Could only place " + str(len(bumpers)) + " bumpers (wanted " + str(bumper_count) + ").")
     else:
-        debug_print(f"Successfully placed {len(bumpers)} bumpers.")
+        debug_print("Successfully placed " + str(len(bumpers)) + " bumpers.")
     return bumpers
+
+def make_pre_darkened_copy(original, brightness):
+    if original is None:
+        return None
+    w, h = original.get_size()
+    copy_surf = original.copy()
+    if brightness >= 1.0:
+        return copy_surf
+    alpha_val = int((1.0 - brightness)*255)
+    overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+    overlay.fill((0,0,0,alpha_val))
+    copy_surf.blit(overlay, (0,0))
+    return copy_surf
 
 def main():
     again = True
@@ -463,17 +495,17 @@ def main():
             pygame.mixer.init()
             debug_print("Pygame and mixer initialized successfully.")
         except Exception as e:
-            debug_print(f"Error initializing Pygame or mixer: {e}")
+            debug_print("Error initializing Pygame or mixer: " + str(e))
             sys.exit(1)
         info = pygame.display.Info()
         global SCREEN_WIDTH, SCREEN_HEIGHT
         SCREEN_WIDTH = info.current_w
         SCREEN_HEIGHT = info.current_h
-        debug_print(f"Detected screen size: {SCREEN_WIDTH}x{SCREEN_HEIGHT}")
+        debug_print("Detected screen size: " + str(SCREEN_WIDTH) + "x" + str(SCREEN_HEIGHT))
         try:
             screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
         except Exception as e:
-            debug_print(f"Error setting fullscreen mode: {e}")
+            debug_print("Error setting fullscreen mode: " + str(e))
             sys.exit(1)
         pygame.display.set_caption("OpenSource-Pinball-like-Game")
         clock = pygame.time.Clock()
@@ -482,6 +514,7 @@ def main():
         font_big = pygame.font.SysFont(FONT_NAME, 60)
         font_small = pygame.font.SysFont(FONT_NAME, 30)
         load_music_files_from_data()
+        load_all_background_images()
         check_and_play_music()
         data_dir = os.path.join(os.getcwd(), "data")
         original_background_surf = None
@@ -490,7 +523,7 @@ def main():
                 original_background_surf = pygame.image.load(os.path.join(data_dir, "background.png")).convert_alpha()
                 debug_print("Loaded background.png successfully.")
             except Exception as e:
-                debug_print(f"Error loading background.png: {e}")
+                debug_print("Error loading background.png: " + str(e))
         else:
             debug_print("No background.png found. Using plain color fill.")
         if os.path.exists(os.path.join(data_dir, "bumper.png")):
@@ -498,7 +531,7 @@ def main():
                 bumper_surf, bumper_mask, _ = load_image_with_mask(os.path.join(data_dir, "bumper.png"))
                 debug_print("Loaded bumper.png successfully.")
             except Exception as e:
-                debug_print(f"Error loading bumper.png: {e}")
+                debug_print("Error loading bumper.png: " + str(e))
                 bumper_surf, bumper_mask = get_alpha_mask_circle(20, color=(255,100,100))
         else:
             debug_print("No bumper.png found. Using fallback circle for bumpers.")
@@ -508,7 +541,7 @@ def main():
                 ball_surf, ball_mask, _ = load_image_with_mask(os.path.join(data_dir, "ball.png"))
                 debug_print("Loaded ball.png successfully.")
             except Exception as e:
-                debug_print(f"Error loading ball.png: {e}. Using fallback circle.")
+                debug_print("Error loading ball.png: " + str(e))
                 ball_surf, ball_mask = get_alpha_mask_circle(10, color=(120,120,120))
         else:
             debug_print("No ball.png found. Using fallback circle for ball.")
@@ -520,7 +553,7 @@ def main():
                 hole_surf, hole_mask, _ = load_image_with_mask(os.path.join(data_dir, "hole.png"))
                 debug_print("Loaded hole.png successfully.")
             except Exception as e:
-                debug_print(f"Error loading hole.png: {e}. Will use fallback rect for holes.")
+                debug_print("Error loading hole.png: " + str(e))
                 hole_surf = None
                 hole_mask = None
         else:
@@ -531,7 +564,7 @@ def main():
                 corner_surf = pygame.image.load(os.path.join(data_dir, "corner.png")).convert_alpha()
                 debug_print("Loaded corner.png successfully.")
             except Exception as e:
-                debug_print(f"Error loading corner.png: {e}. No corner decoration used.")
+                debug_print("Error loading corner.png: " + str(e))
         holes_group = pygame.sprite.Group()
         flipper_group = pygame.sprite.Group()
         gap = SCREEN_WIDTH // (HOLES_COUNT+1)
@@ -556,7 +589,7 @@ def main():
         bumper_wav = os.path.join(data_dir,"bumper.wav")
         pitch_steps = 15
         if os.path.exists(bumper_wav):
-            debug_print(f"Found bumper.wav. Attempting to create bounce_sounds with pitch shift up to {pitch_steps} steps.")
+            debug_print("Found bumper.wav. Attempting pitch shifts up to " + str(pitch_steps))
             tested_pitch_shift = pitch_shift_wav(bumper_wav, 0.0)
             if tested_pitch_shift is not None:
                 for i in range(pitch_steps):
@@ -568,51 +601,51 @@ def main():
                         one_sound = pygame.mixer.Sound(bumper_wav)
                         bounce_sounds.append(one_sound)
             else:
-                debug_print("Pitch shift is not available or failed. Using non-shifted bumper.wav repeatedly.")
+                debug_print("Pitch shift unavailable. Using non-shifted bumper.wav repeatedly.")
                 one_sound = pygame.mixer.Sound(bumper_wav)
                 bounce_sounds = [one_sound]*pitch_steps
         else:
-            debug_print("No bumper.wav found. Generating sine waves for bounce_sounds.")
+            debug_print("No bumper.wav found. Generating sine waves.")
             base_freq = 220
             for i in range(pitch_steps):
                 freq = base_freq*(1.04**i)
                 s = create_sine_wave(freq,200,0.3)
                 bounce_sounds.append(s)
         if not bounce_sounds:
-            debug_print("bounce_sounds ended up empty. Adding a fallback sine wave.")
+            debug_print("No bounce sounds => adding fallback sine wave.")
             bounce_sounds.append(create_sine_wave(220,200,0.3))
         border_sound = None
         border_wav = os.path.join(data_dir,"border.wav")
         if os.path.exists(border_wav):
             try:
                 border_sound = pygame.mixer.Sound(border_wav)
-                debug_print("border.wav loaded successfully.")
+                debug_print("border.wav loaded.")
             except Exception as e:
-                debug_print(f"Failed to load border.wav: {e}. Fallback to sine wave.")
+                debug_print("Failed to load border.wav: " + str(e))
                 border_sound = create_sine_wave(80,150,0.4)
         else:
-            debug_print("No border.wav found. Using fallback sine wave.")
+            debug_print("No border.wav => fallback sine wave.")
             border_sound = create_sine_wave(80,150,0.4)
         panel_sound = None
         panel_wav = os.path.join(data_dir,"panel.wav")
         if os.path.exists(panel_wav):
             try:
                 panel_sound = pygame.mixer.Sound(panel_wav)
-                debug_print("panel.wav loaded successfully.")
+                debug_print("panel.wav loaded.")
             except Exception as e:
-                debug_print(f"Failed to load panel.wav: {e}. Fallback to sine wave.")
+                debug_print("Failed panel.wav => fallback.")
                 panel_sound = create_sine_wave(100,200,0.4)
         else:
-            debug_print("No panel.wav found. Using fallback sine wave for panel.")
+            debug_print("No panel.wav => fallback.")
             panel_sound = create_sine_wave(100,200,0.4)
         button_sound = None
         button_wav = os.path.join(data_dir,"button.wav")
         if os.path.exists(button_wav):
             try:
                 button_sound = pygame.mixer.Sound(button_wav)
-                debug_print("button.wav loaded successfully.")
+                debug_print("button.wav loaded.")
             except Exception as e:
-                debug_print(f"Failed to load button.wav: {e}. No button sound then.")
+                debug_print("Failed button.wav => no button sound.")
         wind = Wind()
         total_score = 0
         level = 1
@@ -622,186 +655,224 @@ def main():
         new_hue = HUE_SHIFT_STEP
         next_hue_update = 0.0
         bg_interpolated_surf = None
-        ORGON_BUTTON_VISIBLE_TIME = 30.0
-        ORGON_BUTTON_HIDDEN_TIME = 30.0
-        REPULSINE_BUTTON_VISIBLE_TIME = 20.0
-        REPULSINE_BUTTON_HIDDEN_TIME = 20.0
+        global IS_PAUSED, SHOW_OPTIONS, BRIGHTNESS, MUSIC_VOLUME
         orgon_button_state = "HIDDEN"
         orgon_button_timer = 0.0
         repulsine_button_state = "HIDDEN"
         repulsine_button_timer = 0.0
+        ORGON_BUTTON_VISIBLE_TIME = 30.0
+        ORGON_BUTTON_HIDDEN_TIME = 30.0
+        REPULSINE_BUTTON_VISIBLE_TIME = 20.0
+        REPULSINE_BUTTON_HIDDEN_TIME = 20.0
         orgon_button_width = 140
         orgon_button_height = 50
         repulsine_button_width = 140
         repulsine_button_height = 50
         orgon_button_rect = pygame.Rect(SCREEN_WIDTH - orgon_button_width - 10, SCREEN_HEIGHT - orgon_button_height - 10, orgon_button_width, orgon_button_height)
         repulsine_button_rect = pygame.Rect(SCREEN_WIDTH - repulsine_button_width - 10, SCREEN_HEIGHT - orgon_button_height - 10 - repulsine_button_height - 10, repulsine_button_width, repulsine_button_height)
-        orgon_img = None
-        repulsine_img = None
-        if os.path.exists(os.path.join(data_dir,"orgon.png")):
-            try:
-                orgon_img = pygame.image.load(os.path.join(data_dir,"orgon.png")).convert_alpha()
-                debug_print("orgon.png loaded for button display.")
-            except:
-                orgon_img = None
-        if os.path.exists(os.path.join(data_dir,"repulsine.png")):
-            try:
-                repulsine_img = pygame.image.load(os.path.join(data_dir,"repulsine.png")).convert_alpha()
-                debug_print("repulsine.png loaded for button display.")
-            except:
-                repulsine_img = None
-        if NOSPOON_MODE:
-            orgon_button_state = "HIDDEN"
-            repulsine_button_state = "HIDDEN"
+        options_button_rect = pygame.Rect(10, SCREEN_HEIGHT - 60, 140, 50)
+        brightness_slider_rect = pygame.Rect(SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT//2 - 30, 300, 20)
+        music_slider_rect = pygame.Rect(SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT//2 + 30, 300, 20)
+        dragging_slider = None
         while running:
+            if BG_IMAGES:
+                BG_INDEX = (level - 1) % len(BG_IMAGES)
+                debug_print("Using background index " + str(BG_INDEX) + "/" + str(len(BG_IMAGES)))
             bumper_group = place_bumpers(level, bumper_surf, bumper_mask)
             shots_left = MAX_SHOTS
             level_score = 0
             ball = Ball((SCREEN_WIDTH//2,50), ball_surf, ball_mask)
             ball_group = pygame.sprite.GroupSingle(ball)
             level_active = True
+            if BG_IMAGES:
+                current_level_bg = BG_IMAGES[BG_INDEX]
+            else:
+                current_level_bg = original_background_surf
+            pre_dark_bg = make_pre_darkened_copy(current_level_bg, BRIGHTNESS)
             while running and level_active:
                 dt = clock.tick(FPS)/1000.0
                 check_and_play_music()
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
-                        debug_print("QUIT event received.")
+                        debug_print("QUIT event")
                         running = False
                     elif event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_ESCAPE:
-                            debug_print("ESC pressed. Exiting game.")
+                            debug_print("ESC => exit")
                             running = False
                         elif event.key in (pygame.K_LEFT, pygame.K_w):
-                            for f in flipper_group:
-                                if f.side=="left":
-                                    f.trigger_flip()
-                        elif event.key in (pygame.K_RIGHT, pygame.K_d):
-                            for f in flipper_group:
-                                if f.side=="right":
-                                    f.trigger_flip()
-                    elif event.type == pygame.MOUSEBUTTONDOWN:
-                        if event.button == 1:
-                            if orgon_button_state == "VISIBLE" and orgon_button_rect.collidepoint(event.pos):
-                                play_button_sound()
-                                wind.angle = random.uniform(0, 2 * math.pi)
-                                wind.strength = random.uniform(0.0, 0.6)
-                                orgon_button_state = "HIDDEN"
-                                orgon_button_timer = 0.0
-                            elif repulsine_button_state == "VISIBLE" and repulsine_button_rect.collidepoint(event.pos):
-                                play_button_sound()
-                                if ball.fired and ball.active:
-                                    ball.vel.y = -abs(ball.vel.y) * 2.0
-                                repulsine_button_state = "HIDDEN"
-                                repulsine_button_timer = 0.0
-                            elif not ball.fired and shots_left > 0:
-                                mx, my = pygame.mouse.get_pos()
-                                dx = mx - ball.pos.x
-                                dy = my - ball.pos.y
-                                angle = math.atan2(dy,dx)
-                                speed = 25 * BALL_SPEED_MODIFIER
-                                ball.vel.x = speed*math.cos(angle)
-                                ball.vel.y = speed*math.sin(angle)
-                                ball.fired = True
-                                shots_left -= 1
-                                bounce_index = 0
-                                debug_print(f"Ball fired at angle {angle} with speed {speed}. Shots left: {shots_left}.")
-                            else:
+                            if not IS_PAUSED:
                                 for f in flipper_group:
                                     if f.side=="left":
                                         f.trigger_flip()
+                        elif event.key in (pygame.K_RIGHT, pygame.K_d):
+                            if not IS_PAUSED:
+                                for f in flipper_group:
+                                    if f.side=="right":
+                                        f.trigger_flip()
+                        elif event.key == pygame.K_p:
+                            IS_PAUSED = not IS_PAUSED
+                            debug_print("Paused toggled => " + str(IS_PAUSED))
+                    elif event.type == pygame.MOUSEBUTTONDOWN:
+                        if event.button == 1:
+                            if options_button_rect.collidepoint(event.pos):
+                                play_button_sound()
+                                SHOW_OPTIONS = not SHOW_OPTIONS
+                                if SHOW_OPTIONS:
+                                    IS_PAUSED = True
+                                else:
+                                    IS_PAUSED = False
+                                pre_dark_bg = make_pre_darkened_copy(current_level_bg, BRIGHTNESS)
+                            else:
+                                if SHOW_OPTIONS:
+                                    if brightness_slider_rect.collidepoint(event.pos):
+                                        dragging_slider = "brightness"
+                                    elif music_slider_rect.collidepoint(event.pos):
+                                        dragging_slider = "music"
+                                else:
+                                    if not IS_PAUSED:
+                                        if orgon_button_state == "VISIBLE" and orgon_button_rect.collidepoint(event.pos):
+                                            play_button_sound()
+                                            wind.angle = random.uniform(0, 2 * math.pi)
+                                            wind.strength = random.uniform(0.0, 0.6)
+                                            orgon_button_state = "HIDDEN"
+                                            orgon_button_timer = 0.0
+                                        elif repulsine_button_state == "VISIBLE" and repulsine_button_rect.collidepoint(event.pos):
+                                            play_button_sound()
+                                            if ball.fired and ball.active:
+                                                ball.vel.y = -abs(ball.vel.y) * 2.0
+                                            repulsine_button_state = "HIDDEN"
+                                            repulsine_button_timer = 0.0
+                                        elif not ball.fired and shots_left > 0:
+                                            mx, my = pygame.mouse.get_pos()
+                                            dx = mx - ball.pos.x
+                                            dy = my - ball.pos.y
+                                            angle = math.atan2(dy,dx)
+                                            speed = 25 * BALL_SPEED_MODIFIER
+                                            ball.vel.x = speed*math.cos(angle)
+                                            ball.vel.y = speed*math.sin(angle)
+                                            ball.fired = True
+                                            shots_left -= 1
+                                            bounce_index = 0
+                                            debug_print("Ball fired angle " + str(angle) + " speed " + str(speed))
+                                        else:
+                                            for f in flipper_group:
+                                                if f.side=="left":
+                                                    f.trigger_flip()
                         elif event.button == 3:
-                            for f in flipper_group:
-                                if f.side=="right":
-                                    f.trigger_flip()
+                            if not IS_PAUSED and not SHOW_OPTIONS:
+                                for f in flipper_group:
+                                    if f.side=="right":
+                                        f.trigger_flip()
+                    elif event.type == pygame.MOUSEBUTTONUP:
+                        if event.button == 1:
+                            dragging_slider = None
+                    elif event.type == pygame.MOUSEMOTION:
+                        if SHOW_OPTIONS and dragging_slider is not None:
+                            mx, my = event.pos
+                            if dragging_slider == "brightness":
+                                rel_x = mx - brightness_slider_rect.x
+                                rel_x = max(0, min(rel_x, brightness_slider_rect.width))
+                                BRIGHTNESS = rel_x / brightness_slider_rect.width
+                                pre_dark_bg = make_pre_darkened_copy(current_level_bg, BRIGHTNESS)
+                                debug_print("BRIGHTNESS => " + str(BRIGHTNESS))
+                            elif dragging_slider == "music":
+                                rel_x = mx - music_slider_rect.x
+                                rel_x = max(0, min(rel_x, music_slider_rect.width))
+                                MUSIC_VOLUME = rel_x / music_slider_rect.width
+                                pygame.mixer.music.set_volume(MUSIC_VOLUME)
+                                debug_print("MUSIC_VOLUME => " + str(MUSIC_VOLUME))
                 if not NOSPOON_MODE:
-                    orgon_button_timer += dt
-                    if orgon_button_state == "HIDDEN":
-                        if orgon_button_timer >= ORGON_BUTTON_HIDDEN_TIME:
-                            orgon_button_state = "VISIBLE"
-                            orgon_button_timer = 0.0
-                    elif orgon_button_state == "VISIBLE":
-                        if orgon_button_timer >= ORGON_BUTTON_VISIBLE_TIME:
-                            orgon_button_state = "HIDDEN"
-                            orgon_button_timer = 0.0
-                    repulsine_button_timer += dt
-                    if repulsine_button_state == "HIDDEN":
-                        if repulsine_button_timer >= REPULSINE_BUTTON_HIDDEN_TIME:
-                            repulsine_button_state = "VISIBLE"
-                            repulsine_button_timer = 0.0
-                    elif repulsine_button_state == "VISIBLE":
-                        if repulsine_button_timer >= REPULSINE_BUTTON_VISIBLE_TIME:
-                            repulsine_button_state = "HIDDEN"
-                            repulsine_button_timer = 0.0
-                wind.update(dt)
-                if ball.fired and ball.active:
-                    wind.apply_to_ball(ball)
-                ball_group.update()
-                for f in flipper_group:
-                    f.update(dt, ball)
-                for bump in bumper_group:
-                    if pygame.sprite.collide_mask(ball, bump):
-                        debug_print("Collision with bumper => +50 points")
-                        level_score += 50
-                        ball.vel.y = -ball.vel.y
-                        bump.on_hit()
-                        play_bounce_sound()
-                        ball.bottom_bounce_count = 0
-                for hobj in holes_group:
-                    if ball.rect.colliderect(hobj.rect):
-                        debug_print("Ball collided with hole => -25 points.")
-                        level_score -= 25
-                        ball.active = False
-                        ball_group.empty()
-                        ball.bottom_bounce_count = 0
-                        break
-                if not ball.active and len(ball_group)==0:
-                    debug_print("Ball is inactive, generating new Ball at top.")
-                    ball = Ball((SCREEN_WIDTH//2,50), ball_surf, ball_mask)
-                    ball_group.add(ball)
-                if ball.bottom_bounce_count >= 5:
-                    debug_print("Ball bounced too often at bottom. Enlarging holes.")
+                    if not IS_PAUSED:
+                        orgon_button_timer += dt
+                        if orgon_button_state == "HIDDEN":
+                            if orgon_button_timer >= 30.0:
+                                orgon_button_state = "VISIBLE"
+                                orgon_button_timer = 0.0
+                        elif orgon_button_state == "VISIBLE":
+                            if orgon_button_timer >= 30.0:
+                                orgon_button_state = "HIDDEN"
+                                orgon_button_timer = 0.0
+                        repulsine_button_timer += dt
+                        if repulsine_button_state == "HIDDEN":
+                            if repulsine_button_timer >= 20.0:
+                                repulsine_button_state = "VISIBLE"
+                                repulsine_button_timer = 0.0
+                        elif repulsine_button_state == "VISIBLE":
+                            if repulsine_button_timer >= 20.0:
+                                repulsine_button_state = "HIDDEN"
+                                repulsine_button_timer = 0.0
+                if not IS_PAUSED:
+                    wind.update(dt)
+                    if ball.fired and ball.active:
+                        wind.apply_to_ball(ball)
+                    ball_group.update()
+                    for f in flipper_group:
+                        f.update(dt, ball)
+                    for bump in bumper_group:
+                        if pygame.sprite.collide_mask(ball, bump):
+                            debug_print("Collision => +50")
+                            level_score += 50
+                            ball.vel.y = -ball.vel.y
+                            bump.on_hit()
+                            play_bounce_sound()
+                            ball.bottom_bounce_count = 0
                     for hobj in holes_group:
-                        hobj.enlarge(10)
-                    ball.bottom_bounce_count = 0
-                if len(bumper_group) == 0:
-                    total_score += level_score
-                    debug_print(f"Level {level} complete. Score so far: {total_score}")
-                    txt = font_big.render(f"Level {level} complete (score change: {level_score})", True, (255,255,255))
-                    screen.fill((0,0,0))
-                    screen.blit(txt, (SCREEN_WIDTH//2 - txt.get_width()//2, SCREEN_HEIGHT//2))
-                    pygame.display.flip()
-                    pygame.time.wait(2000)
-                    level += 1
-                    level_active = False
-                    continue
-                if shots_left <= 0 and not ball.fired and len(bumper_group) > 0:
-                    debug_print("Out of shots. Game Over sequence.")
-                    msg = font_big.render("Game Over", True, (255,50,50))
-                    info = font_small.render(f"Score: {total_score}", True, (255,255,255))
-                    screen.fill((0,0,0))
-                    screen.blit(msg, (SCREEN_WIDTH//2-msg.get_width()//2,SCREEN_HEIGHT//2-40))
-                    screen.blit(info,(SCREEN_WIDTH//2-info.get_width()//2,SCREEN_HEIGHT//2+20))
-                    again_surf = font_small.render("Again? y/n", True, (255,255,255))
-                    screen.blit(again_surf, (SCREEN_WIDTH//2-again_surf.get_width()//2, SCREEN_HEIGHT//2+60))
-                    pygame.display.flip()
-                    log_score(total_score)
-                    asking = True
-                    while asking:
-                        for ev in pygame.event.get():
-                            if ev.type == pygame.KEYDOWN:
-                                if ev.key == pygame.K_y:
-                                    debug_print("User chose to play again.")
-                                    shots_left = MAX_SHOTS
-                                    total_score = 0
-                                    level = 1
-                                    asking = False
-                                    break
-                                elif ev.key == pygame.K_n:
-                                    debug_print("User chose not to play again. Exiting.")
-                                    running = False
-                                    asking = False
-                                    break
-                    break
+                        if ball.rect.colliderect(hobj.rect):
+                            debug_print("Ball => hole => -25")
+                            level_score -= 25
+                            ball.active = False
+                            ball_group.empty()
+                            ball.bottom_bounce_count = 0
+                            break
+                    if not ball.active and len(ball_group)==0:
+                        debug_print("Ball inactive => new ball top")
+                        ball = Ball((SCREEN_WIDTH//2,50), ball_surf, ball_mask)
+                        ball_group.add(ball)
+                    if ball.bottom_bounce_count >= 5:
+                        debug_print("bottom bounce too often => enlarge holes")
+                        for hobj in holes_group:
+                            hobj.enlarge(10)
+                        ball.bottom_bounce_count = 0
+                    if len(bumper_group) == 0:
+                        total_score += level_score
+                        debug_print("Level " + str(level) + " complete => total " + str(total_score))
+                        txt = font_big.render("Level " + str(level) + " complete (score change: " + str(level_score) + ")", True, (255,255,255))
+                        screen.fill((0,0,0))
+                        screen.blit(txt, (SCREEN_WIDTH//2 - txt.get_width()//2, SCREEN_HEIGHT//2))
+                        pygame.display.flip()
+                        pygame.time.wait(2000)
+                        level += 1
+                        level_active = False
+                        continue
+                    if shots_left <= 0 and not ball.fired and len(bumper_group) > 0:
+                        debug_print("Out of shots => Game Over")
+                        msg = font_big.render("Game Over", True, (255,50,50))
+                        info = font_small.render("Score: " + str(total_score), True, (255,255,255))
+                        screen.fill((0,0,0))
+                        screen.blit(msg, (SCREEN_WIDTH//2-msg.get_width()//2,SCREEN_HEIGHT//2-40))
+                        screen.blit(info,(SCREEN_WIDTH//2-info.get_width()//2,SCREEN_HEIGHT//2+20))
+                        again_surf = font_small.render("Again? y/n", True, (255,255,255))
+                        screen.blit(again_surf, (SCREEN_WIDTH//2-again_surf.get_width()//2, SCREEN_HEIGHT//2+60))
+                        pygame.display.flip()
+                        log_score(total_score)
+                        asking = True
+                        while asking:
+                            for ev in pygame.event.get():
+                                if ev.type == pygame.KEYDOWN:
+                                    if ev.key == pygame.K_y:
+                                        debug_print("User => play again")
+                                        shots_left = MAX_SHOTS
+                                        total_score = 0
+                                        level = 1
+                                        asking = False
+                                        break
+                                    elif ev.key == pygame.K_n:
+                                        debug_print("User => not again => exit")
+                                        running = False
+                                        asking = False
+                                        break
+                        break
                 if BG_COLOR_CYCLE == 1 and original_background_surf:
                     current_time = time.time()
                     elapsed = current_time - color_cycle_start_time
@@ -810,7 +881,6 @@ def main():
                         new_hue = (old_hue + HUE_SHIFT_STEP) % 360
                         color_cycle_start_time = current_time
                         elapsed = 0.0
-                        debug_print(f"Switching background hue from {old_hue} to {new_hue}")
                     if elapsed < COLOR_CYCLE_FADE_DURATION:
                         alpha = elapsed / COLOR_CYCLE_FADE_DURATION
                         current_hue = (1 - alpha)*old_hue + alpha*new_hue
@@ -825,8 +895,8 @@ def main():
                     else:
                         screen.fill((0,0,0))
                 else:
-                    if original_background_surf:
-                        bg_scaled=pygame.transform.scale(original_background_surf, (SCREEN_WIDTH, SCREEN_HEIGHT))
+                    if pre_dark_bg:
+                        bg_scaled = pygame.transform.scale(pre_dark_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
                         screen.blit(bg_scaled,(0,0))
                     else:
                         screen.fill((0,0,0))
@@ -844,31 +914,44 @@ def main():
                         screen.blit(corner_surf, c_rect)
                 ball_group.draw(screen)
                 wind.draw(screen)
-                lvl_surf = font_small.render(f"Level: {level}", True, (255,255,255))
+                lvl_surf = font_small.render("Level: " + str(level), True, (255,255,255))
                 screen.blit(lvl_surf,(10,10))
-                shot_surf = font_small.render(f"Shots left: {shots_left}", True, (255,255,255))
+                shot_surf = font_small.render("Shots left: " + str(shots_left), True, (255,255,255))
                 screen.blit(shot_surf,(10,40))
-                score_surf = font_small.render(f"Score: {total_score+level_score}", True, (255,255,255))
+                score_surf = font_small.render("Score: " + str(total_score+level_score), True, (255,255,255))
                 screen.blit(score_surf,(10,70))
+                pygame.draw.rect(screen, (180,180,180), options_button_rect, border_radius=8)
+                opt_txt = font_small.render("Options", True, (0,0,0))
+                screen.blit(opt_txt, (options_button_rect.centerx - opt_txt.get_width()/2, options_button_rect.centery - opt_txt.get_height()/2))
                 if not NOSPOON_MODE:
                     if orgon_button_state == "VISIBLE":
-                        if orgon_img:
-                            scaled_orgon = pygame.transform.smoothscale(orgon_img, (orgon_button_rect.width, orgon_button_rect.height))
-                            screen.blit(scaled_orgon, orgon_button_rect)
-                        else:
-                            pygame.draw.rect(screen, (150,220,150), orgon_button_rect, border_radius=8)
-                            line1 = font_small.render("Orgon", True, (0,0,0))
-                            line2 = font_small.render("Akkumulator", True, (0,0,0))
-                            screen.blit(line1, (orgon_button_rect.centerx - line1.get_width()/2, orgon_button_rect.y + 5))
-                            screen.blit(line2, (orgon_button_rect.centerx - line2.get_width()/2, orgon_button_rect.y + 5 + line1.get_height()))
+                        pygame.draw.rect(screen, (150,220,150), orgon_button_rect, border_radius=8)
+                        line1 = font_small.render("Orgon", True, (0,0,0))
+                        line2 = font_small.render("Akkumulator", True, (0,0,0))
+                        screen.blit(line1, (orgon_button_rect.centerx - line1.get_width()/2, orgon_button_rect.y + 5))
+                        screen.blit(line2, (orgon_button_rect.centerx - line2.get_width()/2, orgon_button_rect.y + 5 + line1.get_height()))
                     if repulsine_button_state == "VISIBLE":
-                        if repulsine_img:
-                            scaled_rep = pygame.transform.smoothscale(repulsine_img, (repulsine_button_rect.width, repulsine_button_rect.height))
-                            screen.blit(scaled_rep, repulsine_button_rect)
-                        else:
-                            pygame.draw.rect(screen, (150,150,220), repulsine_button_rect, border_radius=8)
-                            repulsine_txt = font_small.render("Repulsine", True, (0,0,0))
-                            screen.blit(repulsine_txt, (repulsine_button_rect.centerx - repulsine_txt.get_width()/2, repulsine_button_rect.centery - repulsine_txt.get_height()/2))
+                        pygame.draw.rect(screen, (150,150,220), repulsine_button_rect, border_radius=8)
+                        repulsine_txt = font_small.render("Repulsine", True, (0,0,0))
+                        screen.blit(repulsine_txt, (repulsine_button_rect.centerx - repulsine_txt.get_width()/2, repulsine_button_rect.centery - repulsine_txt.get_height()/2))
+                if SHOW_OPTIONS:
+                    menu_bg = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+                    menu_bg.fill((50,50,50,200))
+                    screen.blit(menu_bg, (0,0))
+                    menu_title = font_big.render("OPTIONS", True, (255,255,255))
+                    screen.blit(menu_title, (SCREEN_WIDTH//2 - menu_title.get_width()//2, SCREEN_HEIGHT//2 - 100))
+                    pygame.draw.rect(screen, (200,200,200), brightness_slider_rect)
+                    fill_w = int(brightness_slider_rect.width * BRIGHTNESS)
+                    fill_rect = pygame.Rect(brightness_slider_rect.x, brightness_slider_rect.y, fill_w, brightness_slider_rect.height)
+                    pygame.draw.rect(screen, (0,255,0), fill_rect)
+                    bri_label = font_small.render("Brightness: " + str(int(BRIGHTNESS*100)) + "%", True, (255,255,255))
+                    screen.blit(bri_label, (brightness_slider_rect.centerx - bri_label.get_width()//2, brightness_slider_rect.y - 25))
+                    pygame.draw.rect(screen, (200,200,200), music_slider_rect)
+                    fill_w2 = int(music_slider_rect.width * MUSIC_VOLUME)
+                    fill2_rect = pygame.Rect(music_slider_rect.x, music_slider_rect.y, fill_w2, music_slider_rect.height)
+                    pygame.draw.rect(screen, (0,255,0), fill2_rect)
+                    vol_label = font_small.render("Music Volume: " + str(int(MUSIC_VOLUME*100)) + "%", True, (255,255,255))
+                    screen.blit(vol_label, (music_slider_rect.centerx - vol_label.get_width()//2, music_slider_rect.y - 25))
                 pygame.display.flip()
         pygame.quit()
         debug_print("Pygame quit. Exiting application.")
