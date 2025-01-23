@@ -29,6 +29,7 @@ Source: https://github.com/zeittresor/pygame_mizzz_pongle
 History
 
 24.01.2025 v1.2
+![pongle1_2](https://github.com/user-attachments/assets/fda31225-a6b0-4282-b332-a55471a7ddb2)
 - Background swapping for each level added
 - 27 new level backgrounds added
 - Options menu added with sliders for music and background brightness
