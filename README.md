@@ -28,7 +28,15 @@ Source: https://github.com/zeittresor/pygame_mizzz_pongle
 
 History
 
-20.01.2025
+24.01.2025 v1.2
+- Background swapping for each level added
+- 27 new level backgrounds added
+- Options menu added with sliders for music and background brightness
+- "p" Key added to pause the game
+- Bugfixes
+- New Win32 binary release added
+
+20.01.2025 v1.1
 - Added Button "Orgon Akkumulator" to let you change the Wind direction / speed randomly every 30 seconds
 - Added Button "Repulsine" to let you change the power up / ball speed every 20 seconds if last wall bumping contact was upside or downside (not left or right side)
 - Added better readme.txt generation with descriptions inside the data folder for "possible available" files
@@ -60,5 +68,5 @@ Command line parameters:
 -fullscreen or other pygame flags (optional, if you modify the code accordingly).
 
 
-18.01.2025
+18.01.2025 v1.0
 - First release Version as source and binary for Windows
