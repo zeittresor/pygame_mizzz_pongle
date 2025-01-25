@@ -71,3 +71,4 @@ Command line parameters:
 
 18.01.2025 v1.0
 - First release Version as source and binary for Windows
+- HiScore will be saved to the game directory as "score_log.txt"
